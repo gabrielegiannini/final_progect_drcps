@@ -29,8 +29,6 @@ typedef struct
   int stop_message;
   int t;
   int i;
-  int rand;
-  int first_phase;
   distance_measurement_t dist;
 
   message_t transmit_msg;
