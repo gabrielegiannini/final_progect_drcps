@@ -12,13 +12,6 @@ SOURCES=$(PRJ_NAME).c
 #name of the executable file
 EXECUTABLE=$(PRJ_NAME).bin
 
-#name of dest shell file
-SHELL_SCRIPT=$(PRJ_NAME).exec
-
-#the script for running with start_positions.json
-script: $(EXECUTABLE)
-	echo '#/bin/bash\n\n./$(EXECUTABLE) -b start_positions.json' > $(SHELL_SCRIPT) && chmod +x $(SHELL_SCRIPT)
-
 # Path to the official kilolib, used for real bots only
 # Set it here, or as an environment variable in the shell:
 #      export KILOHEADERS=/your/path/  
@@ -52,10 +45,10 @@ SIM_LFLAGS = -lsim -lSDL -lm -ljansson
 
 sim: $(EXECUTABLE)
 hex: $(EXECUTABLE).hex
-all: sim hex script
+all: sim hex
 
 clean :
-	rm -f *.o $(EXECUTABLE) *.elf *.hex $(SHELL_SCRIPT)
+	rm -f *.o $(EXECUTABLE) *.elf *.hex
 
 # # # # # # # # # # The following should be generic and not need changes # # # # # # # # # # # # # 
 
