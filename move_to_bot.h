@@ -33,7 +33,7 @@ typedef struct
     //value of the clock when last message was received
     uint32_t last_receiption_time;
     //whether there is a new received message or not
-    bool new_message;
+    bool is_new_message;
     //the direction to which the bot is currently aiming
     motion_t curr_direction;
     //whether a bot should send messages or not
@@ -54,4 +54,6 @@ typedef struct
     message_t transmit_msg;
     //last received message
     message_t received_msg;
+    //for debugging
+    char current_doing[50];
 } USERDATA;

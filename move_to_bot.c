@@ -58,11 +58,16 @@ void set_motion(motion_t new_motion)
 
 void move_random_direction()
 {
-  //actually, random int from 1 to 3, 1 = FORWARD, 2 = LEFT and 3 = RIGHT
-  set_motion((rand_soft() % 3) + 1);
+  if (mydata->t * 32 < kilo_ticks && kilo_ticks < (mydata->t + 2) * 32)
+  {
+    //actually, random int from 1 to 3, 1 = FORWARD, 2 = LEFT and 3 = RIGHT
+    set_motion((rand_soft() % 3) + 1);
+    //skip 2 seconds
+    mydata->t += 4;
+  }
 }
 
-void catch_to_other_bot()
+void catch_other_bot()
 {
   if (mydata->cur_distance > mydata->cur_position)
   {
@@ -96,6 +101,11 @@ void move_to_find_other_bots()
     set_motion(FORWARD);
     mydata->t = mydata->t + mydata->i;
     mydata->i = mydata->i + SPIRAL_INCREMENT;
+  }
+  //reset the spiral if it's too much that the bot is swirling around
+  if ((kilo_ticks - mydata->last_receiption_time) % (300 * 32) < 3)
+  {
+    mydata->i = 1;
   }
 }
 
@@ -142,14 +152,17 @@ void update_distance_estimate()
 
 void loop()
 {
+  mydata->current_doing[0] = "\0";
   if (mydata->target_catched)
   {
+    sprintf(mydata->current_doing, "CATCHED");
     return;
   }
   //if no message has been received for a long time
   if (mydata->last_receiption_time + TIME_TO_CONSIDER_OUT_OF_RANGE <= kilo_ticks && kilo_uid != mydata->target_uid)
   {
     move_to_find_other_bots();
+    sprintf(mydata->current_doing, "SEARCHING OTHERS");
     mydata->cur_distance = UINT8_MAX;
     mydata->cur_position = UINT8_MAX;
     mydata->distance_to_target = UINT8_MAX;
@@ -157,9 +170,9 @@ void loop()
     mydata->stop_message = true;
     return;
   }
-  if (mydata->new_message)
+  if (mydata->is_new_message)
   {
-    mydata->new_message = false;
+    mydata->is_new_message = false;
     update_distance_estimate();
   }
 
@@ -170,29 +183,26 @@ void loop()
     mydata->target_catched = true;
     printf("ID: %i CATCHED TARGET\n", kilo_uid);
     // mydata->stop_message = true;
-    // mydata->new_message = false;
+    // mydata->is_new_message = false;
     return;
   }
 
   // target bot is running away, other ones are trying to catch up (katchup?)
   if (kilo_uid == mydata->target_uid)
   {
-    if (mydata->t * 32 < kilo_ticks && kilo_ticks < (mydata->t + 2) * 32)
-    {
-      move_random_direction();
-      //skip 2 seconds
-      mydata->t += 4;
-    }
+    move_random_direction();
+    sprintf(mydata->current_doing, "MOVING RANDOMLY");
   }
   else
   {
-    catch_to_other_bot();
+    catch_other_bot();
+    sprintf(mydata->current_doing, "CATCHING target: %i, following: %i", mydata->target_uid, mydata->following_uid);
   }
 }
 
 void message_rx(message_t *m, distance_measurement_t *d)
 {
-  mydata->new_message = true;
+  mydata->is_new_message = true;
   //start transmitting
   mydata->stop_message = false;
   //set the time of receiption of this message
@@ -229,7 +239,7 @@ void setup()
   mydata->target_uid = 0;
   mydata->stop_message = kilo_uid == mydata->target_uid ? 0 : 1;
   mydata->cur_distance = 0;
-  mydata->new_message = false;
+  mydata->is_new_message = false;
   mydata->distance_to_target = UINT8_MAX;
   mydata->following_distance_to_target = UINT8_MAX;
   mydata->last_receiption_time = 0;
@@ -261,7 +271,7 @@ static char botinfo_buffer[10000];
 char *cb_botinfo(void)
 {
   char *p = botinfo_buffer;
-  p += sprintf(p, "ID: %d \n", kilo_uid);
+  p += sprintf(p, "ID: %d, ", kilo_uid);
   switch (mydata->curr_direction)
   {
   case STOP:
@@ -278,7 +288,7 @@ char *cb_botinfo(void)
     break;
   }
   p += sprintf(p, ", Distance to target: %i\n", mydata->distance_to_target);
-  p += sprintf(p, "t: %i, i: %i\n", mydata->t, mydata->i);
+  p += sprintf(p, "target: %i, following: %i, t: %i, i: %i, doing %s\n", mydata->target_uid, mydata->following_uid, mydata->t, mydata->i, mydata->current_doing);
   return botinfo_buffer;
 }
 #endif
