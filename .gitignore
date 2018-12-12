@@ -3,3 +3,4 @@
 *.hex
 *.exec
 *.elf
+endstate.json
