@@ -56,6 +56,11 @@ void set_motion(motion_t new_motion)
   mydata->curr_direction = new_motion;
 }
 
+void assign_color()
+{
+  set_color(RGB(kilo_uid, (255 - kilo_uid), ((512 - kilo_uid) / 2)));
+}
+
 void move_random_direction()
 {
   if (mydata->t * 32 < kilo_ticks && kilo_ticks < (mydata->t + 2) * 32)
@@ -84,10 +89,10 @@ void catch_other_bot()
       set_motion((rand_soft() % 2 + 2));
     }
   }
-  else if (mydata->cur_distance == mydata->cur_position)
-  {
-    set_motion(FORWARD);
-  }
+  // else if (mydata->cur_distance == mydata->cur_position)
+  // {
+  //   set_motion(FORWARD);
+  // }
 }
 
 void move_to_find_other_bots()
@@ -120,14 +125,15 @@ void update_distance_estimate()
   else
   {
     //a catcher update distance_to_target with the estimate only if received directly from target
-    if (mydata->received_msg.data[0] == mydata->target_uid)
-    {
-      //update distance estimate
-      mydata->cur_position = mydata->cur_distance;
-      mydata->cur_distance = distance_estimate;
-      mydata->distance_to_target = distance_estimate;
-    }
-    else
+    // if (mydata->received_msg.data[0] == mydata->target_uid)
+    // {
+    //   //update distance estimate
+    //   mydata->cur_position = mydata->cur_distance;
+    //   mydata->cur_distance = distance_estimate;
+    //   mydata->distance_to_target = distance_estimate;
+    //   mydata->following_uid = mydata->target_uid;
+    // }
+    // else
     {
       // choose whether to update who to follow (the bot who is believed to be the closest to target)
       if (mydata->received_msg.data[1] < mydata->following_distance_to_target)
@@ -153,6 +159,24 @@ void update_distance_estimate()
 void loop()
 {
   mydata->current_doing[0] = "\0";
+
+  if (mydata->is_new_message)
+  {
+    mydata->is_new_message = false;
+    update_distance_estimate();
+  }
+
+  if (mydata->distance_to_target < RANGE_TO_TOUCH)
+  {
+    set_motion(STOP);
+    set_color(RGB(0, 0, 3));
+    mydata->target_catched = true;
+  }
+  else if (kilo_uid != mydata->target_uid)
+  {
+    mydata->stop_message=true;
+  }
+
   if (mydata->target_catched)
   {
     sprintf(mydata->current_doing, "CATCHED");
@@ -170,27 +194,12 @@ void loop()
     mydata->stop_message = true;
     return;
   }
-  if (mydata->is_new_message)
-  {
-    mydata->is_new_message = false;
-    update_distance_estimate();
-  }
-
-  if (mydata->distance_to_target < 45)
-  {
-    set_motion(STOP);
-    set_color(RGB(0, 0, 3));
-    mydata->target_catched = true;
-    printf("ID: %i CATCHED TARGET\n", kilo_uid);
-    // mydata->stop_message = true;
-    // mydata->is_new_message = false;
-    return;
-  }
 
   // target bot is running away, other ones are trying to catch up (katchup?)
   if (kilo_uid == mydata->target_uid)
   {
     move_random_direction();
+    // set_motion(STOP);
     sprintf(mydata->current_doing, "MOVING RANDOMLY");
   }
   else
@@ -231,7 +240,6 @@ message_t *message_tx()
   else
   {
     return NULL;
-
   }
 }
 
@@ -261,7 +269,7 @@ void setup()
   else
   {
     //just to be colorful!
-    set_color(RGB(kilo_uid, (255 - kilo_uid), ((512 - kilo_uid) / 2)));
+    assign_color();
     set_motion(STOP);
   }
 }
@@ -288,7 +296,7 @@ char *cb_botinfo(void)
     p += sprintf(p, "Direction: RIGHT");
     break;
   }
-  p += sprintf(p, ", Distance to target: %i\n", mydata->distance_to_target);
+  p += sprintf(p, ", Dtt: %i, sending: [%i, %i]\n", mydata->distance_to_target, mydata->transmit_msg.data[0], mydata->transmit_msg.data[1]);
   p += sprintf(p, "target: %i, following: %i, t: %i, i: %i, doing %s\n", mydata->target_uid, mydata->following_uid, mydata->t, mydata->i, mydata->current_doing);
   return botinfo_buffer;
 }
