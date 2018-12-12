@@ -231,6 +231,7 @@ message_t *message_tx()
   else
   {
     return NULL;
+
   }
 }
 
