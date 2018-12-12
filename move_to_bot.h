@@ -31,7 +31,7 @@ typedef struct
     //distance from following bot to target
     uint8_t following_distance_to_target;
     //value of the clock when last message was received
-    uint32_t last_receiption_time;
+    uint32_t last_reception_time;
     //whether there is a new received message or not
     bool is_new_message;
     //the direction to which the bot is currently aiming

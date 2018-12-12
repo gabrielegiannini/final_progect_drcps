@@ -103,7 +103,7 @@ void move_to_find_other_bots()
     mydata->i = mydata->i + SPIRAL_INCREMENT;
   }
   //reset the spiral if it's too much that the bot is swirling around
-  if ((kilo_ticks - mydata->last_receiption_time) % (300 * 32) < 3)
+  if ((kilo_ticks - mydata->last_reception_time) % (200 * 32) < 3)
   {
     mydata->i = 1;
   }
@@ -159,7 +159,7 @@ void loop()
     return;
   }
   //if no message has been received for a long time
-  if (mydata->last_receiption_time + TIME_TO_CONSIDER_OUT_OF_RANGE <= kilo_ticks && kilo_uid != mydata->target_uid)
+  if (mydata->last_reception_time + TIME_TO_CONSIDER_OUT_OF_RANGE <= kilo_ticks && kilo_uid != mydata->target_uid)
   {
     move_to_find_other_bots();
     sprintf(mydata->current_doing, "SEARCHING OTHERS");
@@ -205,8 +205,8 @@ void message_rx(message_t *m, distance_measurement_t *d)
   mydata->is_new_message = true;
   //start transmitting
   mydata->stop_message = false;
-  //set the time of receiption of this message
-  mydata->last_receiption_time = kilo_ticks;
+  //set the time of reception of this message
+  mydata->last_reception_time = kilo_ticks;
   mydata->dist = *d;
   mydata->received_msg = *m;
   // printf("ID: %i, target: %i, rec from: %i, dtt: %i\n", kilo_uid, mydata->target_uid, m->data[0], m->data[1]);
@@ -243,7 +243,7 @@ void setup()
   mydata->is_new_message = false;
   mydata->distance_to_target = UINT8_MAX;
   mydata->following_distance_to_target = UINT8_MAX;
-  mydata->last_receiption_time = 0;
+  mydata->last_reception_time = 0;
   mydata->target_catched = false;
   mydata->t = 0;
   mydata->i = 1;
