@@ -104,8 +104,15 @@ void loop()
   else
   {
     set_motion(STOP);
+    //mydata->first_phase = mydata->first_phase + 1;
     mydata->t = 2;
     mydata->i = 1;
+  }
+
+  if(kilo_uid == mydata->new_message){
+    printf("%i\n", mydata->new_message);
+    set_color(RGB(3,3,3));
+
   }
   /*if (mydata->new_message==1) {
         mydata->new_message = 0;
@@ -131,7 +138,7 @@ void loop()
 
 void message_rx(message_t *m, distance_measurement_t *d)
 {
-  mydata->new_message = 1;
+  mydata->new_message = mydata->rand;
   mydata->stop_message = 0;
   mydata->dist = *d;
 }
@@ -153,6 +160,7 @@ message_t *message_tx()
   else
   {
     return NULL;
+
   }
 }
 
@@ -164,6 +172,9 @@ void setup()
   mydata->new_message = 0;
   mydata->t = 0;
   mydata->i = 1;
+  mydata->first_phase = 0;
+  mydata->rand = rand_soft() % 10;
+//initial random choise of the witch
   setup_message();
   if (kilo_uid == 0)
   {
@@ -179,6 +190,7 @@ void setup()
   {
     set_color(RGB(kilo_uid, 255 - kilo_uid, (512 - kilo_uid) / 2));
   }
+  
 }
 
 #ifdef SIMULATOR
