@@ -7,7 +7,11 @@
 //2 leads to a spiral diverging too slowly
 //values bigger than 5 leads to bots dispersing too much
 #define SPIRAL_INCREMENT 4
+// 2 seconds, after that time the bot should consider to be oout of communication range
+// and start to move to search for other bots
 #define TIME_TO_CONSIDER_OUT_OF_RANGE 64
+// the threashold for considering 2 bots touching
+#define RANGE_TO_TOUCH 50
 
 // declare motion variable type
 typedef enum
@@ -40,13 +44,13 @@ typedef struct
     bool stop_message;
     //whether a bot has catched its target
     bool target_catched;
-    //for spiral movement
+    //for movement
     int t;
     //for spiral movement
     int i;
     //the id of the target bot
     uint8_t target_uid;
-    //the id of the bot tha this bot is currently following (maybe is the target, maybe not)
+    //the id of the bot that this bot is currently following (maybe is the target, maybe not)
     uint8_t following_uid;
     //the last distance measurment received
     distance_measurement_t dist;
