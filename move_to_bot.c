@@ -58,7 +58,8 @@ void set_motion(motion_t new_motion)
 
 void assign_color()
 {
-  set_color(RGB(kilo_uid, (255 - kilo_uid), ((512 - kilo_uid) / 2)));
+  mydata->my_color = kilo_uid == 0 ? RGB(3, 3, 3) : RGB(kilo_uid, (3 - kilo_uid), ((6 - kilo_uid) / 2));
+  set_color(mydata->my_color);
 }
 
 void move_random_direction()
@@ -131,7 +132,7 @@ void set_catched()
 void update_distance_estimate()
 {
   uint8_t distance_estimate = estimate_distance(&mydata->dist);
-  if (mydata->target_uid == kilo_uid)
+  if (mydata->target_color == mydata->my_color)
   {
     //the target consider everyone else a target (whoever catches him, he must stop)
     mydata->distance_to_target = distance_estimate < mydata->distance_to_target ? distance_estimate : mydata->distance_to_target;
@@ -141,12 +142,12 @@ void update_distance_estimate()
     // choose whether to update who to follow (the bot who is believed to be the closest to target)
     if (mydata->received_msg.data[1] < mydata->following_distance_to_target)
     {
-      mydata->following_uid = mydata->received_msg.data[0];
+      mydata->following_color = mydata->received_msg.data[0];
       mydata->following_distance_to_target = mydata->received_msg.data[1];
     }
 
     //then it update the distance estimate
-    if (mydata->received_msg.data[0] == mydata->following_uid)
+    if (mydata->received_msg.data[0] == mydata->following_color)
     {
       //update distance estimate
       mydata->cur_position = mydata->cur_distance;
@@ -187,7 +188,7 @@ void loop()
     return;
   }
   //if no message has been received for a long time
-  if (mydata->last_reception_time + TIME_TO_CONSIDER_OUT_OF_RANGE <= kilo_ticks && kilo_uid != mydata->target_uid)
+  if (mydata->last_reception_time + TIME_TO_CONSIDER_OUT_OF_RANGE <= kilo_ticks && mydata->my_color != mydata->target_color)
   {
     move_to_find_other_bots();
     sprintf(mydata->current_doing, "SEARCHING OTHERS");
@@ -200,7 +201,7 @@ void loop()
   }
 
   // target bot is running away, other ones are trying to catch up (katchup?)
-  if (kilo_uid == mydata->target_uid)
+  if (mydata->my_color == mydata->target_color)
   {
     move_random_direction();
     sprintf(mydata->current_doing, "MOVING RANDOMLY");
@@ -208,7 +209,7 @@ void loop()
   else
   {
     catch_other_bot();
-    sprintf(mydata->current_doing, "CATCHING target: %i, following: %i", mydata->target_uid, mydata->following_uid);
+    sprintf(mydata->current_doing, "CATCHING target: %i, following: %i", mydata->target_color, mydata->following_color);
   }
 }
 
@@ -226,8 +227,8 @@ void message_rx(message_t *m, distance_measurement_t *d)
 void setup_message(void)
 {
   mydata->transmit_msg.type = NORMAL;
-  mydata->transmit_msg.data[0] = kilo_uid & 0xff; //low byte of ID
-  mydata->transmit_msg.data[1] = kilo_uid == mydata->target_uid ? 0 : mydata->distance_to_target;
+  mydata->transmit_msg.data[0] = mydata->my_color;
+  mydata->transmit_msg.data[1] = mydata->my_color == mydata->target_color ? 0 : mydata->distance_to_target;
   //finally, calculate a message check sum
   mydata->transmit_msg.crc = message_crc(&mydata->transmit_msg);
 }
@@ -247,8 +248,7 @@ message_t *message_tx()
 
 void setup()
 {
-  mydata->target_uid = 0;
-  mydata->stop_message = kilo_uid == mydata->target_uid ? 0 : 1;
+  mydata->target_color = RGB(3, 3, 3);
   mydata->cur_distance = 0;
   mydata->is_new_message = false;
   mydata->distance_to_target = UINT8_MAX;
@@ -259,6 +259,7 @@ void setup()
   mydata->i = 1;
   setup_message();
   assign_color();
+  mydata->stop_message = mydata->my_color == mydata->target_color ? 0 : 1;
 }
 
 #ifdef SIMULATOR
@@ -284,7 +285,7 @@ char *cb_botinfo(void)
     break;
   }
   p += sprintf(p, ", Dtt: %i, sending: [%i, %i]\n", mydata->distance_to_target, mydata->transmit_msg.data[0], mydata->transmit_msg.data[1]);
-  p += sprintf(p, "target: %i, following: %i, t: %i, i: %i, doing %s\n", mydata->target_uid, mydata->following_uid, mydata->t, mydata->i, mydata->current_doing);
+  p += sprintf(p, "target: %i, following: %i, t: %i, i: %i, doing %s\n", mydata->target_color, mydata->following_color, mydata->t, mydata->i, mydata->current_doing);
   return botinfo_buffer;
 }
 #endif
