@@ -1,6 +1,6 @@
 {
     "botName" : "Orbit bot",
-    "randSeed" : 2,
+    "randSeed" : 1,
     "nBots" : 10,
     "timeStep" : 0.0416666,
     "__note" : "0.04166 is 24 FPS which matches the movie frame rate",

@@ -13,7 +13,7 @@
 // and start to move to search for other bots
 #define TIME_TO_CONSIDER_OUT_OF_RANGE 64
 // the threashold for considering 2 bots touching
-#define RANGE_TO_TOUCH 50
+#define RANGE_TO_TOUCH 
 
 // declare motion variable type
 typedef enum
@@ -30,6 +30,10 @@ typedef struct
 {
     //the color of this bot
     uint8_t my_color;
+    //array of 10 elements (the number of bots) that is used in the phase one to verify if all other bots communicate with bot1
+    uint8_t already_sent[10];
+    //array of 10 elements (the number of bots) that is used in the phase two to verify if all the bots know the color of target bot
+    uint8_t have_target[10];
     //current distance from another bot
     uint8_t cur_distance;
     //previous distance from another bot
@@ -42,6 +46,32 @@ typedef struct
     uint32_t last_reception_time;
     //whether there is a new received message or not
     bool is_new_message;
+    //is true when the first phase of the game is terminated
+    bool phase_one_end;
+    //is used to print only one time the message that the kilobot is running the phase one
+    bool phase_one_end_message;
+    //is true when the second phase of the game is terminated
+    bool phase_two_end;
+    //is true if the kilobot know the target
+    bool target_bool;
+    //is true if the witch is chose
+    bool witch_choose;
+    //is true if the current kilobot is the witch
+    bool i_am_the_witch;
+    //used to print only one time when the phase one and for a bot
+    bool print_phase_one;
+    //is true if the target is chose
+    bool target_chosen;
+    //is true if the kilobot know the target
+    bool get_target;
+    //is true if the target is not sent by the bot 1 to the other
+    bool send_target;
+    //used to clean array of messages only one time and not forever
+    bool clean_array;
+    //is true if phase one is running
+    bool phase_one_running;
+    //number representing the id of the witch chose by bot1
+    uint8_t witch;
     //the direction to which the bot is currently aiming
     motion_t curr_direction;
     //whether a bot should send messages or not
