@@ -13,7 +13,7 @@
 // and start to move to search for other bots
 #define TIME_TO_CONSIDER_OUT_OF_RANGE 64
 // the threashold for considering 2 bots touching
-#define RANGE_TO_TOUCH 
+#define RANGE_TO_TOUCH 50
 
 // declare motion variable type
 typedef enum
@@ -58,6 +58,10 @@ typedef struct
     bool target_bool;
     //is true if the witch is chose
     bool witch_choose;
+    bool one_time;
+    bool wait_to_start;
+    bool game_started;
+    bool phase_one_and_one_time;
     //is true if the current kilobot is the witch
     bool i_am_the_witch;
     //used to print only one time when the phase one and for a bot
