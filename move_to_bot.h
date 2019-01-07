@@ -28,6 +28,8 @@ typedef enum
 
 typedef struct
 {
+    //ee
+    uint16_t connections;
     //the color of this bot
     uint8_t my_color;
     //array of 10 elements (the number of bots) that is used in the phase one to verify if all other bots communicate with bot1

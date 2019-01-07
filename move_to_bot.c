@@ -64,30 +64,30 @@ void clear_message_array(){//clean the array of transmit message, except for the
 }
 
 void clean_array_SR(){//clean the array of transmit message and the array of received message.
-	for(int i=1;i<4;i++){
+	for(int i=0;i<4;i++){
 		mydata->transmit_msg.data[i] = 0;
-	}
-  for(int i=0;i<4;i++){
 		mydata->received_msg.data[i] = 0;
 	}
-	
 }
 
 void setup_message(void){//define the messages that kilobots send
 
 	mydata->transmit_msg.type = NORMAL;
-  mydata->transmit_msg.data[0] =  kilo_uid;
-
-	if(kilo_uid==1 && !mydata->phase_one_end){//while phase one is not finis, the bot1 send message[1]=1
-  	mydata->transmit_msg.data[1] = 1;
+	if(mydata->phase_one_end){
+		mydata->transmit_msg.data[0] =  mydata->connections & 255;
+  		mydata->transmit_msg.data[1] =  mydata->connections >> 8;	
 	}
 	
-	if(kilo_uid == 1 && mydata->phase_one_end){//when the phase one finish, the bot1 choose randomly who is the witch and send it message[1]=witch
+	if(mydata->phase_one_end){
+		mydata->transmit_msg.data[1] = mydata->received_msg.data[1];
+	}
+	
+	/*if(kilo_uid == 1 && mydata->phase_one_end){//when the phase one finish, the bot1 choose randomly who is the witch and send it message[1]=witch
 		mydata->transmit_msg.data[1] = mydata->witch;
-  }
+  	}*/
 	
   if(mydata->target_chosen){//if the witch chose the target, send it on message[2]. target_chosen is true only in the bot that is the witch and only if chose the target
-		mydata->transmit_msg.data[2] = mydata->target_color;
+		mydata->transmit_msg.data[1] = mydata->target_color;
   }
 
   mydata->transmit_msg.crc = message_crc(&mydata->transmit_msg);//checksum os messages
@@ -192,50 +192,16 @@ void update_distance_estimate(){
 
 bool first_phase(){//while the array already_set don't have all elements equals to 1 return false, else return true. return true when all kilobots communicate with the bot1
 
-	if (mydata->received_msg.data[1] == 1){
+	if ((mydata->received_msg.data[0] >> 1) & 1){
 		set_motion(STOP);
-		
-
-	mydata->stop_message = true;
-		return true;
-	}else{
-		 //do nothing	
 	}
-
+		
 	if(kilo_uid != 1 && mydata->curr_direction != STOP){
 		move_to_find_other_bots();
 		return false;
 	}
-
-	for(int i=0; i<10; i++){
-		if(kilo_uid == 1){
-			if(mydata->received_msg.data[0] == i){
-				mydata->already_sent[i]=1;
-			}
-		}
-		   mydata->already_sent[1]=1;
-	}
-
-	for(int i=0;i<10;i++){
-		if(kilo_uid == 1){
-			if(mydata->already_sent[i] == 1){
-				//condition satisfied
-			}else{
-				return false;
-			}
-		}else{
-			return false;
-		}
-	}
-	return true;
-
-}
-
-bool second_phase(){
-		
-	printf("Witch: %i\n", kilo_uid);
-	mydata->i_am_the_witch = true;
-	return mydata->i_am_the_witch;
+	
+	return mydata->connections == 1023;
 
 }
 
@@ -263,7 +229,7 @@ bool all_have_target(){//is useful to verify if every kilobots know who is their
 void loop(){
 
 	//first phase (make all communicate)
-	if(mydata->phase_one_end == false){
+	if(!mydata->phase_one_end){
 		if(mydata->phase_one_running){
 			printf("Kilobot %i: Phase 1 running...\n", kilo_uid);
 			mydata->phase_one_running = false;
@@ -278,24 +244,30 @@ void loop(){
 	}
         
 	//second phase (random choise of witch. One bot make this choise and then will broadcast the ID on the network created)
-	if(kilo_uid == 1 && mydata->witch_choose == false){
-		mydata->witch_choose = true;
-	}
-
-	if(mydata->phase_two_end == false && mydata->received_msg.data[1] == kilo_uid && kilo_uid != 0){
-		mydata->phase_two_end = second_phase();
+	if(!mydata->phase_two_end && mydata->phase_one_end && kilo_uid == 1){
+                rand_seed(3);
+		mydata->witch = rand_soft()%10;
+		printf("Witch: %i\n", mydata->witch);
+		clean_array_SR();
+		mydata->transmit_msg.data[1] = mydata->witch;
+		mydata->transmit_msg.data[0] = 2;//phase two
+		mydata->phase_two_end = true;
 		return;
 	}
 
 	//third phase (random choise of the target color. the witch choise this color and brodcast it on the network)
-	if(mydata->i_am_the_witch){
+	if(mydata->received_msg.data[1] == kilo_uid)
+		mydata->i_am_the_witch = true;
+
+	if(mydata->i_am_the_witch && !mydata->target_chosen){
 		mydata->target_color = rand_soft()%10;
+		printf("Target, ID: %i, %i\n", mydata->target_color, kilo_uid);
 		mydata->target_chosen = true;
 		mydata->i_am_the_witch = false;
 		return;
 	}
 
-  if(kilo_uid == 1 && mydata->send_target){//the bot1 receive the target from the witch because the bot1 communicate for sure with all oterh bot, and brodcast to all the other
+  	/*if(kilo_uid == 1 && mydata->send_target){//the bot1 receive the target from the witch because the bot1 communicate for sure with all oterh bot, and brodcast to all the other
 		if(mydata->received_msg.data[2]<10 && mydata->received_msg.data[2] != 0 && mydata->send_target){
 			mydata->target_color = mydata->received_msg.data[2];
 			mydata->transmit_msg.data[2] = mydata->target_color;
@@ -339,7 +311,7 @@ void loop(){
 		//printf("%i CATCH\n", kilo_uid);
       		catch_other_bot();
       		sprintf(mydata->current_doing, "CATCHING target: %i, following: %i", mydata->target_color, mydata->following_color);
-  }
+  }*/
 
 }
 
@@ -352,6 +324,8 @@ void message_rx(message_t *m, distance_measurement_t *d){
   mydata->last_reception_time = kilo_ticks;
   mydata->dist = *d;
 	mydata->received_msg = *m;
+  if(!mydata->phase_one_end && (m->data[0] >> 1) & 1)
+	mydata->connections = mydata->connections | ((m->data[1] << 8 ) | m->data[0]);
 
 }
 
@@ -368,7 +342,7 @@ message_t *message_tx(){
 
 void setup(){
 
-	mydata->target_color = RGB(3, 3, 3);
+  mydata->target_color = RGB(3, 3, 3);
   mydata->cur_distance = 0;
   mydata->is_new_message = false;
   mydata->distance_to_target = UINT8_MAX;
@@ -389,6 +363,7 @@ void setup(){
   mydata->witch = rand_soft()%10;
   mydata->t = 0;
   mydata->i = 1;
+  mydata->connections = 1 << kilo_uid;
   setup_message();
   assign_color(); 
   clean_array_SR();
@@ -423,7 +398,7 @@ char *cb_botinfo(void)
   }
   p += sprintf(p, ", Dtt: %i, sending: [%i, %i,%i,%i]\n", mydata->distance_to_target, mydata->transmit_msg.data[0], mydata->transmit_msg.data[1],mydata->transmit_msg.data[2],mydata->transmit_msg.data[3]);
   p += sprintf(p, ", Dtt: %i, receiving: [%i, %i,%i,%i]\n", mydata->distance_to_target, mydata->received_msg.data[0], mydata->received_msg.data[1],mydata->received_msg.data[2],mydata->received_msg.data[3]);
-  p += sprintf(p, "target: %i, following: %i, t: %i, i: %i, doing %s\n", mydata->target_color, mydata->following_color, mydata->t, mydata->i, mydata->current_doing);
+  p += sprintf(p, "target: %i, following: %i, t: %i, i: %i, doing %s\n", mydata->connections, mydata->following_color, mydata->t, mydata->i, mydata->current_doing);
   return botinfo_buffer;
 }
 #endif
